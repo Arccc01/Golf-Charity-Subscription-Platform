@@ -21,10 +21,12 @@ export default function Dashboard() {
 
 useEffect(() => {
   Promise.all([
+    api.get('/auth/me'),
     api.get('/scores'),
     api.get('/winners/my-wins'),
-    api.get('/subscription/my-payments'), // add this
-  ]).then(([s, w, p]) => {
+    api.get('/subscription/my-payments'), 
+  ]).then(([u, s, w, p]) => {
+    setUser(u.data.user);
     setScores(s.data.scores);
     setWins(w.data.myWins);
     setPayments(p.data.payments);
@@ -80,23 +82,42 @@ useEffect(() => {
         {/* Stats row */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '3rem' }}>
           {[
-            { label: 'Scores logged',   value: scores.length + ' / 5' },
-            { label: 'Draws entered',   value: wins.length },
-            { label: 'Total won',       value: '₹' + wins.reduce((s, w) => s + w.prizeAmount, 0).toLocaleString('en-IN') },
-            { label: 'Subscription',    value: 'Active', color: '#1D9E75' },
-          ].map(stat => (
-            <div key={stat.label} className="card" style={{ padding: '1.5rem' }}>
-              <div style={{ fontSize: '0.8rem', color: 'var(--cream-dim)', marginBottom: '0.5rem', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                {stat.label}
-              </div>
-              <div style={{
-                fontFamily: 'var(--font-display)',
-                fontSize:   '1.8rem',
-                color:      stat.color || 'var(--gold)',
-                fontWeight: 600,
-              }}>{stat.value}</div>
-            </div>
-          ))}
+  {
+    label: 'Scores logged',
+    value: `${scores.length} / 5`,
+  },
+  {
+    label: 'Draws entered',
+    value: wins.length,
+  },
+  {
+    label: 'Total won',
+    value: '₹' + wins.reduce((s, w) => s + w.prizeAmount, 0).toLocaleString('en-IN'),
+  },
+  {
+    label: 'Subscription',
+    value: user?.subscription?.status
+      ? user.subscription.status.charAt(0).toUpperCase() + user.subscription.status.slice(1)
+      : 'Loading...',
+    color: user?.subscription?.status === 'active' ? '#1D9E75' :
+           user?.subscription?.status === 'lapsed' ? '#C9A84C' : '#e74c3c',
+  },
+].map(stat => (
+  <div key={stat.label} className="card" style={{ padding: '1.5rem' }}>
+    <div style={{
+      fontSize: '0.8rem', color: 'var(--cream-dim)',
+      marginBottom: '0.5rem', letterSpacing: '0.08em', textTransform: 'uppercase',
+    }}>
+      {stat.label}
+    </div>
+    <div style={{
+      fontFamily: 'var(--font-display)',
+      fontSize:   '1.8rem',
+      color:      stat.color || 'var(--gold)',
+      fontWeight: 600,
+    }}>{stat.value}</div>
+  </div>
+))}
         </div>
 
         {/* Tabs */}
@@ -286,17 +307,72 @@ useEffect(() => {
         )}
 
         {/* CHARITY TAB */}
-        {tab === 'charity' && (
-          <div className="card" style={{ maxWidth: 600 }}>
-            <h3 style={{ marginBottom: '0.5rem', fontSize: '1.2rem' }}>Your charity</h3>
-            <p style={{ color: 'var(--cream-dim)', marginBottom: '2rem', fontSize: '0.9rem' }}>
-              A minimum of 10% of your subscription goes to your selected charity each month.
-            </p>
-            <Link to="/charities" className="btn-gold" style={{ display: 'inline-block' }}>
-              Browse and select charities
-            </Link>
+       {tab === 'charity' && (
+  <div className="card" style={{ maxWidth: 600 }}>
+    <h3 style={{ marginBottom: '0.5rem', fontSize: '1.2rem' }}>Your charity</h3>
+    <p style={{ color: 'var(--cream-dim)', marginBottom: '2rem', fontSize: '0.9rem' }}>
+      A minimum of 10% of your subscription goes to your selected charity each month.
+    </p>
+
+    {user?.selectedCharity ? (
+      <div style={{ marginBottom: '2rem' }}>
+
+        {/* Currently selected */}
+        <div style={{
+          padding:      '1.25rem 1.5rem',
+          background:   '#111',
+          borderRadius: 'var(--radius-md)',
+          border:       '1px solid var(--gold-dim)',
+          marginBottom: '1.5rem',
+          display:      'flex',
+          justifyContent:'space-between',
+          alignItems:   'center',
+        }}>
+          <div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--gold)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '0.4rem' }}>
+              Currently supporting
+            </div>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.2rem' }}>
+              {user.selectedCharity.name}
+            </div>
           </div>
-        )}
+          <div style={{
+            fontFamily:  'var(--font-display)',
+            fontSize:    '2rem',
+            color:       'var(--gold)',
+            fontWeight:  600,
+          }}>
+            {user.charityPercentage}%
+          </div>
+        </div>
+
+        <div style={{ fontSize: '0.85rem', color: 'var(--cream-dim)', marginBottom: '1.5rem', lineHeight: 1.7 }}>
+          You are contributing <strong style={{ color: 'var(--cream)' }}>{user.charityPercentage}%</strong> of
+          your subscription to <strong style={{ color: 'var(--cream)' }}>{user.selectedCharity.name}</strong> each month.
+          {user.subscription?.plan === 'monthly'
+            ? ` That's ₹${Math.floor(499 * user.charityPercentage / 100)} per month.`
+            : ` That's ₹${Math.floor(4999 * user.charityPercentage / 100)} per year.`}
+        </div>
+      </div>
+    ) : (
+      <div style={{
+        padding:      '1.5rem',
+        background:   '#111',
+        borderRadius: 'var(--radius-md)',
+        border:       '1px solid #2A2A2A',
+        marginBottom: '1.5rem',
+        color:        'var(--cream-dim)',
+        fontSize:     '0.9rem',
+      }}>
+        You haven't selected a charity yet.
+      </div>
+    )}
+
+    <a href="/charities" className="btn-gold" style={{ display: 'inline-block' }}>
+      {user?.selectedCharity ? 'Change charity' : 'Browse and select a charity'}
+    </a>
+  </div>
+)}
 
    {tab === 'payments' && (
   <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
