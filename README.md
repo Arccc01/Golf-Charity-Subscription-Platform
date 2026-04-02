@@ -22,7 +22,6 @@ https://golf-charity-subscription-platform-six-taupe.vercel.app/
 - [Draw Engine](#draw-engine)
 - [Payment Flow](#payment-flow)
 - [Deployment](#deployment)
-- [Screenshots](#screenshots)
 
 ---
 
@@ -435,3 +434,4 @@ Thumbs.db
 This project was built as a sample assignment for the Digital Heroes Full-Stack Development Trainee Selection Process.
 
 ---
+
